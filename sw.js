@@ -1,5 +1,5 @@
 // 離線快取：改版時改 VER
-var VER = 'ledger-3';
+var VER = 'ledger-4';
 var FILES = ['./', 'index.html', 'app.js', 'manifest.webmanifest', 'hero.jpg', 'icons-a.webp', 'icons-b.webp', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', function (e) { e.waitUntil(caches.open(VER).then(function (c) { return c.addAll(FILES); })); self.skipWaiting(); });
 self.addEventListener('activate', function (e) { e.waitUntil(caches.keys().then(function (ks) { return Promise.all(ks.filter(function (k) { return k !== VER; }).map(function (k) { return caches.delete(k); })); })); self.clients.claim(); });

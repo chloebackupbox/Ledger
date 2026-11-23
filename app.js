@@ -219,8 +219,12 @@ function importKJ(text) {
     var dm = p[0].match(/(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/); if (!dm) { bad++; return; }
     var date = dm[1] + '-' + p2(+dm[2]) + '-' + p2(+dm[3]);
     var tm = L.match(/\b(\d{1,2}):(\d{2})\b/), time = tm ? p2(+tm[1]) + ':' + tm[2] : '';
-    var mer = p[1] || '', amtS = (p[2] || '').replace(/[^0-9.\-]/g, ''), card = p[3] || '';
-    if (!amtS && /^[\d,.$\s]+$/.test(mer) && mer) { amtS = mer.replace(/[^0-9.]/g, ''); mer = ''; }
+    // 金額同商戶邊個先都得（你個捷徑係 日期|金額|商戶|卡）
+    var f1 = p[1] || '', f2 = p[2] || '', card = p[3] || '';
+    function isAmt(x) { return /\d/.test(x) && /^[^A-Za-z\u4e00-\u9fff]*(HK|HKD|NT|US|JP|CN|RMB|SGD|MOP)?[^A-Za-z\u4e00-\u9fff]*[\d,.]+[^A-Za-z\u4e00-\u9fff]*(HKD|TWD|JPY|KRW|USD|CNY|RMB)?$/i.test(x.replace(/\s/g, '')); }
+    var rawAmt = isAmt(f1) ? f1 : (isAmt(f2) ? f2 : ''), mer = rawAmt === f1 ? f2 : f1;
+    var amtS = rawAmt.replace(/[^0-9.\-]/g, '');
+    var foreign = rawAmt && !/^\s*(HK\$|HKD|\$)?\s*[\d,.]+\s*(HKD)?\s*$/i.test(rawAmt);
     var k = date + '#' + L; cnt[k] = (cnt[k] || 0) + 1; var key = k + '#' + cnt[k];
     if (S.seen[key]) { skip++; return; }
     S.seen[key] = 1;
@@ -228,7 +232,9 @@ function importKJ(text) {
     if (!(amt > 0) && !mer) { S.octPend.push({ id: nid(), date: date, time: time, n: cnt[k] }); addO++; return; }
     if (!(amt > 0)) { bad++; return; }
     var g = guessCat(mer), acct = matchAcct(card) || (card ? '' : (oct ? oct.name : ''));
-    S.records.push({ id: nid(), date: date, type: 'exp', amt: r2(amt), acct: acct || card || '未知', cat: g ? g[0] : '', sub: g ? g[1] : '', note: mer, mer: mer, pend: true, src: 'kj', time: time, sure: !!g });
+    var rec = { id: nid(), date: date, type: 'exp', amt: r2(amt), acct: acct || card || '未知', cat: g ? g[0] : '', sub: g ? g[1] : '', note: mer, mer: mer, pend: true, src: 'kj', time: time, sure: !!g };
+    if (foreign) { rec.note = mer + '（' + rawAmt + '，外幣：撳入去改實際港幣）'; rec.est = true; }
+    S.records.push(rec);
     addR++;
   });
   S.lastKJ = today(); save();
@@ -724,7 +730,7 @@ document.addEventListener('change', function (e) {
 });
 // 捷徑直接寫入：網址帶 ?d=日期&t=時間&m=商戶&a=金額&c=卡名（未必每部 iPhone 都得，冇效就用 kuaiji.txt）
 function intake() {
-  var q = new URLSearchParams(location.search || (location.hash.indexOf('?') >= 0 ? location.hash.slice(location.hash.indexOf('?')) : ''));
+  var h = location.hash.replace(/^#\/?\??/, ''), q = new URLSearchParams(location.search.length > 1 ? location.search : h);
   if (!q.has('d') && !q.has('a') && !q.has('m')) return;
   var d = q.get('d') || today(), t = q.get('t') || nowHM(), line = d + ' ' + t + '|' + (q.get('m') || '') + '|' + (q.get('a') || '') + '|' + (q.get('c') || '');
   var before = S.records.length, beforeO = S.octPend.length;
@@ -735,5 +741,7 @@ function intake() {
 }
 intake();
 window.addEventListener('pageshow', function () { intake(); render(); });
+window.addEventListener('hashchange', function () { intake(); render(); });
+document.addEventListener('visibilitychange', function () { if (!document.hidden) { intake(); render(); } });
 render();
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(function () {});
