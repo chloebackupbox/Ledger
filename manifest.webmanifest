@@ -1,2 +1,2 @@
-{"name":"我的記賬","short_name":"記賬","start_url":"./","scope":"./","display":"standalone","background_color":"#FBF4EF","theme_color":"#FBF4EF","lang":"zh-HK",
+{"name":"我的記賬","short_name":"記賬","start_url":"./","scope":"./","display":"standalone","background_color":"#F8EFE8","theme_color":"#F8EFE8","lang":"zh-HK",
  "icons":[{"src":"icon-192.png","sizes":"192x192","type":"image/png"},{"src":"icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}]}
